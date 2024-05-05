@@ -1,5 +1,8 @@
 package com.example.Client;
 
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
 import java.awt.Container;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
@@ -9,11 +12,14 @@ import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SocketChannel;
+import java.util.HashSet;
 
 import javax.swing.BorderFactory;
+import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JList;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
@@ -25,8 +31,9 @@ public class ClientGUI extends JFrame implements ActionListener {
 	private SocketChannel channel;
 
 	//TODO: GUI Elements
-	private JList<String> listOfTopics = new JList<>();
-	private JList<String> listOfExistingTopics = new JList<>();
+	String[] test = {"test", "test2"};
+	private JList<String> listOfTopics = new JList<>(test);
+	private HashSet<String> subsribed = new HashSet<>();
 	private JScrollPane scrollPane = new JScrollPane();
 	private JTextArea textArea = new JTextArea( 20, 20);
 	private JPanel newsPanel = new JPanel();
@@ -39,6 +46,7 @@ public class ClientGUI extends JFrame implements ActionListener {
 
 	public ClientGUI(String server) {
 		this.server = server;
+		subsribed.add("test");
 		/*
 		try {
 			channel = SocketChannel.open();
@@ -52,11 +60,14 @@ public class ClientGUI extends JFrame implements ActionListener {
 			System.exit(2);
 		}
 		*/
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		contentPane.setLayout(new FlowLayout());
 		textArea.setText("Test Text for News");
 		newsPanel.setBorder(BorderFactory.createTitledBorder("News"));
 		optionsPanel.setBorder(BorderFactory.createTitledBorder("Options"));
 		newsPanel.add(new JScrollPane(textArea));
+		subMenagmentButton.addActionListener(this);
+		getNextNewsButton.addActionListener(this);
 		optionsPanel.add(subMenagmentButton);
 		optionsPanel.add(getNextNewsButton);
 		contentPane.add(newsPanel);
@@ -75,6 +86,24 @@ public class ClientGUI extends JFrame implements ActionListener {
 
 		pack();
 		setVisible(true);
+
+		listOfTopics.setCellRenderer(new DefaultListCellRenderer(){
+			@Override
+			public Component getListCellRendererComponent(JList list, Object value, int index,
+					boolean isSelected, boolean cellHasFocus) {
+				Component c = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+				if (value instanceof String) {
+					String topic = (String) value;
+					if (subsribed.contains(topic)) {
+						setBackground(Color.GREEN);
+					}
+					if (isSelected) {
+						setBackground(getBackground().darker());
+					}
+				}
+				return c;
+			}
+		});
 	}
 
 	private void connect() throws IOException {
@@ -89,8 +118,49 @@ public class ClientGUI extends JFrame implements ActionListener {
 	}
 
 	@Override
-	public void actionPerformed(ActionEvent arg0) {
-		// TODO Auto-generated method stub
-		throw new UnsupportedOperationException("Unimplemented method 'actionPerformed'");
+	public void actionPerformed(ActionEvent event) {
+		if (event.getSource() == subMenagmentButton && listOfTopics.getModel().getSize() != 0){
+			JButton subscribeButton = new JButton("Subscribe");
+			JButton unsubscribeButton = new JButton("Unsubscribe");
+
+			JPanel buttonPanel = new JPanel();
+			buttonPanel.add(subscribeButton);
+			buttonPanel.add(unsubscribeButton);
+
+			JPanel panel = new JPanel(new BorderLayout());
+			panel.add(new JScrollPane(listOfTopics), BorderLayout.CENTER);
+			panel.add(buttonPanel, BorderLayout.SOUTH);
+
+			subscribeButton.addActionListener(new ActionListener(){
+
+				@Override
+				public void actionPerformed(ActionEvent arg0) {
+					boolean successfullyAdded = subsribed.add(listOfTopics.getSelectedValue());
+					if(!successfullyAdded){
+						JOptionPane.showMessageDialog(null, "Already subscribed");
+					}
+				}
+
+			});
+
+			unsubscribeButton.addActionListener(new ActionListener() {
+
+				@Override
+				public void actionPerformed(ActionEvent arg0) {
+					boolean successfullyRemoved = subsribed.remove(listOfTopics.getSelectedValue());
+					if(!successfullyRemoved) {
+						JOptionPane.showMessageDialog(null, "Topic Not subscribed");
+					}
+				}
+				
+			});
+
+			JOptionPane.showOptionDialog(this, panel, "Menage Subscription",
+					JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE,
+					null, new Object[]{}, null);
+
+			
+			
+		}
 	}
 }
