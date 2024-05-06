@@ -141,6 +141,8 @@ public class ClientGUI extends JFrame implements ActionListener {
 			if(!successfullyRemoved) {
 				JOptionPane.showMessageDialog(null, "Topic Not subscribed");
 			}
+		}else if(event.getSource() == getNextNewsButton){
+			//TODO: getting news from the backlog
 		}
 	}
 }
