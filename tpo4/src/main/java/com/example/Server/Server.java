@@ -4,16 +4,27 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
+
+import com.example.Models.Client;
 
 
 public class Server {
+
+	private ServerSocketChannel serverChannel;
+	private Selector selector;
+	private List<String> topics = new ArrayList<String>();
+	private List<Client> clients = new ArrayList<Client>();
+
 
 	public static void main(String[] args) throws IOException, InterruptedException {	
 		new Server();
@@ -25,7 +36,7 @@ public class Server {
 			// i związanie go z konkretnym adresem (host+port)
 		String host = "localhost";
 		int port = 2137;
-		ServerSocketChannel serverChannel = ServerSocketChannel.open();
+		serverChannel = ServerSocketChannel.open();
 		serverChannel.socket().bind(new InetSocketAddress(host, port));
 
 			// Ustalenie trybu nieblokującego
@@ -33,14 +44,20 @@ public class Server {
 		serverChannel.configureBlocking(false);
 		
 			// Utworzenie selektora
-		Selector selector = Selector.open();
+		selector = Selector.open();
 		
 			// Rejestracja kanału gniazda serwera u selektora
 		serverChannel.register(selector, SelectionKey.OP_ACCEPT);
 		
 		System.out.println("Server waiting ... ");
 		
-			// Selekcja gotowych operacji do wykonania i ich obsługa
+		serviceConnections();
+	
+	}
+
+	private void serviceConnections()
+			throws IOException, ClosedChannelException {
+		// Selekcja gotowych operacji do wykonania i ich obsługa
 			// w pętli dzialania serwera
 		while (true) {
 			
@@ -58,56 +75,39 @@ public class Server {
 			  
 			 while(iter.hasNext()) {  
 			    
-				  	// pobranie klucza
 				 SelectionKey key = iter.next();
 			    
-				  	// musi być usunięty ze zbioru (nie ma autonatycznego usuwania)
-				  	// w przeciwnym razie w kolejnym kroku pętli "obsłużony" klucz
-				  	// dostalibyśmy do ponownej obsługi
 				 iter.remove();                                                  
 			    
-			    		// Wykonanie operacji opisywanej przez klucz
-				 if (key.isAcceptable()) { // połaczenie klienta gotowe do akceptacji
+				 if (key.isAcceptable()) {
 			      
 					 System.out.println("New connection ..., accepting ... ");
-			    		// Uzyskanie kanału do komunikacji z klientem
-			    		// accept jest nieblokujące, bo już klient czeka
 					 SocketChannel cc = serverChannel.accept();
 			      
-			    		// Kanał nieblokujący, bo będzie rejestrowany u selektora
 					 cc.configureBlocking(false);
 			    		
-			    		// rejestrujemy kanał komunikacji z klientem
-			    		// do monitorowania przez ten sam selektor
 					 cc.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
 			      
 					 continue;
 				  }
 			    
-				  if (key.isReadable()) {  // któryś z kanałów gotowy do czytania
+				  if (key.isReadable()) {
 			      
-			    			// Uzyskanie kanału na którym czekają dane do odczytania
 					  SocketChannel cc = (SocketChannel) key.channel();
 					  
+					  //TODO: Find a way to bind Client to key, to update client subscriptions
+					  //Probably using haschcode of key
 					  serviceRequest(cc); 
 			
-			    			// obsługa zleceń klienta
-			    			// ... 
 					  continue;
 				  }
-				  if (key.isWritable()) {  // któryś z kanałów gotowy do pisania
+				  if (key.isWritable()) {
 			    	
-					  		// Uzyskanie kanału
-					  //SocketChannel cc = (SocketChannel) key.channel();
-			      
-			    			// pisanie do kanału
-			    			// ...
 					  continue;
 				  } 
 				 			  
 			 }
 		}
-	
 	}
 	
 	
@@ -125,7 +125,7 @@ public class Server {
 	private void serviceRequest(SocketChannel sc) {
 		if (!sc.isOpen()) return; // jeżeli kanał zamknięty
 	 
-		System.out.print("Serwer: czytam komunikat od klienta ... ");
+		System.out.print("Reading Client Request ... ");
 			// Odczytanie zlecenia
 		reqString.setLength(0);
 	    bbuf.clear();
@@ -147,27 +147,24 @@ public class Server {
 	    				}
 	    			}
 	    		}
-	      }
+	      	}
 	    		
-		    String cmd = reqString.toString();
+		    String request = reqString.toString();
 		    System.out.println(reqString);
 		    
-		    if (cmd.equals("Hi")) {
-		    	sc.write(charset.encode(CharBuffer.wrap("Hi")));
-		    } 
-		    else if (cmd.equals("Bye")) {           // koniec komunikacji
-		    										
-		    	sc.write(charset.encode(CharBuffer.wrap("Bye")));
-		  	  	System.out.println("Serwer: mówię \"Bye\" do klienta ...\n\n");  
-		    	
-		  	  	sc.close();                      // - zamknięcie kanału  
-		        sc.socket().close();			 // i gniazda
-		       
-		    } else
-		    		// echo do Klienta
-			    sc.write(charset.encode(CharBuffer.wrap(reqString)));
-	    
-	 
+		    if (request.startsWith("SUBSCRIBE")) {
+		    	//TODO: add subscription to client
+		    }else if(request.startsWith("UNSUBSCRIBE")){
+				//TODO: remove subscription from client
+			}else if(request.startsWith("ADD")){
+				//TODO: add new topic
+			}else if(request.startsWith("REMOVE")){
+				//TODO: remove topic
+			}else if(request.equals("GET /listOfTopics")){
+				//TODO: send list of possible topics to client in JSON format
+			}else if(request.startsWith("SEND")){
+				//TODO: send news to subscribers
+			}
 	    } catch (Exception exc) { // przerwane polączenie?
 	    	exc.printStackTrace();
 	        try { sc.close();
