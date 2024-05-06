@@ -22,6 +22,7 @@ import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 
 public class ClientGUI extends JFrame implements ActionListener {
@@ -34,13 +35,14 @@ public class ClientGUI extends JFrame implements ActionListener {
 	String[] test = {"test", "test2"};
 	private JList<String> listOfTopics = new JList<>(test);
 	private HashSet<String> subsribed = new HashSet<>();
-	private JScrollPane scrollPane = new JScrollPane();
 	private JTextArea textArea = new JTextArea( 20, 20);
 	private JPanel newsPanel = new JPanel();
-	private JPanel optionsPanel = new JPanel();
+	private JPanel optionsPanel = new JPanel(new BorderLayout());
 	private Container contentPane = getContentPane();
-	private JButton subMenagmentButton = new JButton("Menage Subscriptions");
 	private JButton getNextNewsButton = new JButton("Get Next News");
+	private JButton subscribeButton = new JButton("Subscribe");
+	private JButton unsubscribeButton = new JButton("Unsubscribe");
+	private JTabbedPane tabbedPane = new JTabbedPane();
 
 	private ClientTask task;
 
@@ -65,13 +67,21 @@ public class ClientGUI extends JFrame implements ActionListener {
 		textArea.setText("Test Text for News");
 		newsPanel.setBorder(BorderFactory.createTitledBorder("News"));
 		optionsPanel.setBorder(BorderFactory.createTitledBorder("Options"));
+		JPanel buttonPanel = new JPanel();
+		buttonPanel.add(subscribeButton);
+		buttonPanel.add(unsubscribeButton);
+
+		optionsPanel.add(new JScrollPane(listOfTopics), BorderLayout.CENTER);
+		optionsPanel.add(buttonPanel, BorderLayout.SOUTH);
+		
 		newsPanel.add(new JScrollPane(textArea));
-		subMenagmentButton.addActionListener(this);
+		subscribeButton.addActionListener(this);
+		unsubscribeButton.addActionListener(this);
 		getNextNewsButton.addActionListener(this);
-		optionsPanel.add(subMenagmentButton);
-		optionsPanel.add(getNextNewsButton);
-		contentPane.add(newsPanel);
-		contentPane.add(optionsPanel);
+		newsPanel.add(getNextNewsButton);
+		tabbedPane.add("News", newsPanel);
+		tabbedPane.add("Menage Subscriptions", optionsPanel);
+		contentPane.add(tabbedPane);
 		addWindowListener(new WindowAdapter() {
 			public void windowClosing(WindowEvent e) {
 				dispose();
@@ -119,48 +129,18 @@ public class ClientGUI extends JFrame implements ActionListener {
 
 	@Override
 	public void actionPerformed(ActionEvent event) {
-		if (event.getSource() == subMenagmentButton && listOfTopics.getModel().getSize() != 0){
-			JButton subscribeButton = new JButton("Subscribe");
-			JButton unsubscribeButton = new JButton("Unsubscribe");
-
-			JPanel buttonPanel = new JPanel();
-			buttonPanel.add(subscribeButton);
-			buttonPanel.add(unsubscribeButton);
-
-			JPanel panel = new JPanel(new BorderLayout());
-			panel.add(new JScrollPane(listOfTopics), BorderLayout.CENTER);
-			panel.add(buttonPanel, BorderLayout.SOUTH);
-
-			subscribeButton.addActionListener(new ActionListener(){
-
-				@Override
-				public void actionPerformed(ActionEvent arg0) {
-					boolean successfullyAdded = subsribed.add(listOfTopics.getSelectedValue());
-					if(!successfullyAdded){
-						JOptionPane.showMessageDialog(null, "Already subscribed");
-					}
-				}
-
-			});
-
-			unsubscribeButton.addActionListener(new ActionListener() {
-
-				@Override
-				public void actionPerformed(ActionEvent arg0) {
-					boolean successfullyRemoved = subsribed.remove(listOfTopics.getSelectedValue());
-					if(!successfullyRemoved) {
-						JOptionPane.showMessageDialog(null, "Topic Not subscribed");
-					}
-				}
-				
-			});
-
-			JOptionPane.showOptionDialog(this, panel, "Menage Subscription",
-					JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE,
-					null, new Object[]{}, null);
-
-			
-			
+		if (event.getSource() == subscribeButton){
+			//TODO: send info to server about change in subscription
+			boolean successfullyAdded = subsribed.add(listOfTopics.getSelectedValue());
+			if(!successfullyAdded){
+				JOptionPane.showMessageDialog(null, "Already subscribed");
+			}
+		}else if(event.getSource() == unsubscribeButton){
+			//TODO: send info to server about change in subscription
+			boolean successfullyRemoved = subsribed.remove(listOfTopics.getSelectedValue());
+			if(!successfullyRemoved) {
+				JOptionPane.showMessageDialog(null, "Topic Not subscribed");
+			}
 		}
 	}
 }
