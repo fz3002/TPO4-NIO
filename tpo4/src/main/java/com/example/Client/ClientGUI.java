@@ -13,9 +13,11 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SocketChannel;
 import java.util.HashSet;
+import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListCellRenderer;
+import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JList;
@@ -32,8 +34,8 @@ public class ClientGUI extends JFrame implements ActionListener {
 	private SocketChannel channel;
 
 	//TODO: GUI Elements
-	String[] test = {"test", "test2"};
-	private JList<String> listOfTopics = new JList<>(test);
+	private DefaultListModel<String> model = new DefaultListModel<String>();
+	private JList<String> listOfTopics = new JList<>(model);
 	private HashSet<String> subsribed = new HashSet<>();
 	private JTextArea textArea = new JTextArea( 20, 20);
 	private JPanel newsPanel = new JPanel();
@@ -44,7 +46,8 @@ public class ClientGUI extends JFrame implements ActionListener {
 	private JButton unsubscribeButton = new JButton("Unsubscribe");
 	private JTabbedPane tabbedPane = new JTabbedPane();
 
-	private ClientTask task;
+	private ClientReceiverTask task;
+	private Thread clientThread;
 
 	public ClientGUI(String server) {
 		this.server = server;
@@ -62,6 +65,9 @@ public class ClientGUI extends JFrame implements ActionListener {
 			System.exit(2);
 		}
 		*/
+		task = new ClientReceiverTask(this, channel);
+		clientThread = new Thread(task);
+		clientThread.start();
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		contentPane.setLayout(new FlowLayout());
 		textArea.setText("Test Text for News");
@@ -144,5 +150,37 @@ public class ClientGUI extends JFrame implements ActionListener {
 		}else if(event.getSource() == getNextNewsButton){
 			//TODO: getting news from the backlog
 		}
+	}
+
+	public void setModel(List<String> listOfTopics){
+		try {
+			wait();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		for (String topic : listOfTopics) {
+			model.addElement(topic);
+		}
+		notifyAll();
+	}
+
+	public void deleteTopic(String topic) {
+		try {
+			wait();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		model.removeElement(topic);
+		notifyAll();
+	}
+
+	public void addTopic(String topic) {
+		try {
+			wait();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		model.addElement(topic);
+		notifyAll();
 	}
 }
