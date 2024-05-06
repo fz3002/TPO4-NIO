@@ -6,6 +6,8 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import com.google.gson.Gson;
 
@@ -13,9 +15,9 @@ public class ClientReceiverTask implements Runnable{
 
     private static Charset charset = Charset.forName("ISO-8859-2");
     private static ByteBuffer inBuffer = ByteBuffer.allocateDirect(1024);
+    private static Queue<String> newsBackLog = new ConcurrentLinkedQueue<>();
     private SocketChannel channel;
     private ClientGUI gui;
-    private String message;
     private StringBuffer result;
     private Gson g = new Gson();
 
@@ -86,11 +88,19 @@ public class ClientReceiverTask implements Runnable{
         }catch (Exception e) {
             e.printStackTrace();
         }
+        //TOOD: thinka about better way to parse this
         if (result.toString().startsWith("REMOVE")){
             gui.deleteTopic(result.toString().split("\n")[1]);
         }else if(result.toString().startsWith("ADD")){
             gui.addTopic(result.toString().split("\n")[1]);
+        }else if(result.toString().startsWith("NEWS")){
+            newsBackLog.add(result.toString().split("\n")[1]);
+            gui.setBacklogStatus(newsBackLog.size());
         }
+    }
+
+    public String getNews(){
+        return newsBackLog.poll();
     }
 
 }

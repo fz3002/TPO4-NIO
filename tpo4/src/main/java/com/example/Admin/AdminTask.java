@@ -21,7 +21,7 @@ public class AdminTask implements Runnable{
 
     @Override
     public void run() {
-        // TODO: admin clinet task
+        // TODO: admin client task
         throw new UnsupportedOperationException("Unimplemented method 'run'");
     }
 

@@ -20,6 +20,7 @@ import javax.swing.DefaultListCellRenderer;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -31,13 +32,16 @@ public class ClientGUI extends JFrame implements ActionListener {
 
 	public final static int PORT = 2137;
 	private String server;
-	private SocketChannel channel;
+	private volatile SocketChannel channel;
+	private volatile String changedTopic;
+	public volatile boolean newSubscription = false;
+	public volatile boolean newUnsubscription = false;
 
-	//TODO: GUI Elements
 	private DefaultListModel<String> model = new DefaultListModel<String>();
 	private JList<String> listOfTopics = new JList<>(model);
 	private HashSet<String> subsribed = new HashSet<>();
 	private JTextArea textArea = new JTextArea( 20, 20);
+	private JLabel backlogStatus = new JLabel("News in backlog: 0");
 	private JPanel newsPanel = new JPanel();
 	private JPanel optionsPanel = new JPanel(new BorderLayout());
 	private Container contentPane = getContentPane();
@@ -46,8 +50,9 @@ public class ClientGUI extends JFrame implements ActionListener {
 	private JButton unsubscribeButton = new JButton("Unsubscribe");
 	private JTabbedPane tabbedPane = new JTabbedPane();
 
-	private ClientReceiverTask task;
-	private Thread clientThread;
+	private ClientReceiverTask listeningTask;
+	private ClientSenderTask sendingTask;
+	private Thread clientListeningThread, clientSendingThread ;
 
 	public ClientGUI(String server) {
 		this.server = server;
@@ -65,9 +70,12 @@ public class ClientGUI extends JFrame implements ActionListener {
 			System.exit(2);
 		}
 		*/
-		task = new ClientReceiverTask(this, channel);
-		clientThread = new Thread(task);
-		clientThread.start();
+		listeningTask = new ClientReceiverTask(this, channel);
+		sendingTask = new ClientSenderTask(this, channel);
+		clientListeningThread = new Thread(listeningTask);
+		clientSendingThread = new Thread(sendingTask);
+		clientListeningThread.start();
+		clientSendingThread.start();
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		contentPane.setLayout(new FlowLayout());
 		textArea.setText("Test Text for News");
@@ -85,6 +93,7 @@ public class ClientGUI extends JFrame implements ActionListener {
 		unsubscribeButton.addActionListener(this);
 		getNextNewsButton.addActionListener(this);
 		newsPanel.add(getNextNewsButton);
+		newsPanel.add(backlogStatus);
 		tabbedPane.add("News", newsPanel);
 		tabbedPane.add("Menage Subscriptions", optionsPanel);
 		contentPane.add(tabbedPane);
@@ -135,20 +144,27 @@ public class ClientGUI extends JFrame implements ActionListener {
 
 	@Override
 	public void actionPerformed(ActionEvent event) {
+		
 		if (event.getSource() == subscribeButton){
 			//TODO: send info to server about change in subscription
-			boolean successfullyAdded = subsribed.add(listOfTopics.getSelectedValue());
+			changedTopic = listOfTopics.getSelectedValue();
+			boolean successfullyAdded = subsribed.add(changedTopic);
 			if(!successfullyAdded){
 				JOptionPane.showMessageDialog(null, "Already subscribed");
+			}else{
+				newSubscription = true;
 			}
 		}else if(event.getSource() == unsubscribeButton){
 			//TODO: send info to server about change in subscription
+			changedTopic = listOfTopics.getSelectedValue();
 			boolean successfullyRemoved = subsribed.remove(listOfTopics.getSelectedValue());
 			if(!successfullyRemoved) {
 				JOptionPane.showMessageDialog(null, "Topic Not subscribed");
+			}else{
+				newUnsubscription = true;
 			}
 		}else if(event.getSource() == getNextNewsButton){
-			//TODO: getting news from the backlog
+			textArea.setText(listeningTask.getNews());
 		}
 	}
 
@@ -183,4 +199,11 @@ public class ClientGUI extends JFrame implements ActionListener {
 		model.addElement(topic);
 		notifyAll();
 	}
+
+	public synchronized String getChangedTopic(){
+		return changedTopic;
+	}
+	public void setBacklogStatus(int backlogSize) {
+		backlogStatus.setText("News in Backlog: " + backlogSize);
+	};
 }
