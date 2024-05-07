@@ -15,7 +15,7 @@ public class ClientReceiverTask implements Runnable{
 
     private static Charset charset = Charset.forName("ISO-8859-2");
     private static ByteBuffer inBuffer = ByteBuffer.allocateDirect(1024);
-    private static Queue<String> newsBackLog = new ConcurrentLinkedQueue<>();
+    private Queue<String> newsBackLog = new ConcurrentLinkedQueue<>();
     private SocketChannel channel;
     private ClientGUI gui;
     private StringBuffer result;

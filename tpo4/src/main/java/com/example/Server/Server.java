@@ -5,6 +5,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.channels.ClosedChannelException;
+import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
@@ -13,9 +14,12 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import com.example.Models.Client;
+import com.example.Models.News;
 
 
 public class Server {
@@ -24,7 +28,10 @@ public class Server {
 	private Selector selector;
 	private List<String> topics = new ArrayList<String>();
 	private List<Client> clients = new ArrayList<Client>();
-
+	private Queue<News> newsBackLog = new ConcurrentLinkedQueue<>();
+	private Queue<String> topicsToAdd = new ConcurrentLinkedQueue<>();
+	private Queue<String> topicsToRemove = new ConcurrentLinkedQueue<>();
+	 
 
 	public static void main(String[] args) throws IOException, InterruptedException {	
 		new Server();
@@ -87,23 +94,26 @@ public class Server {
 					 cc.configureBlocking(false);
 			    		
 					 cc.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+
+					 clients.add(new Client(key.hashCode()));
 			      
 					 continue;
 				  }
 			    
 				  if (key.isReadable()) {
 			      
-					  SocketChannel cc = (SocketChannel) key.channel();
-					  
-					  //TODO: Find a way to bind Client to key, to update client subscriptions
-					  //Probably using haschcode of key
-					  serviceRequest(cc); 
-			
-					  continue;
+					SocketChannel cc = (SocketChannel) key.channel();
+					
+					serviceRequest(cc, key.hashCode()); 
+		
+					continue;
 				  }
 				  if (key.isWritable()) {
-			    	
-					  continue;
+					SocketChannel cc = (SocketChannel) key.channel();
+
+					sendData(cc, key.hashCode());
+
+					continue;
 				  } 
 				 			  
 			 }
@@ -121,8 +131,7 @@ public class Server {
 	  	// Tu będzie zlecenie do pezetworzenia
 	private StringBuffer reqString = new StringBuffer();
 	
-	//TODO: Change service request to implement given bussiness logic
-	private void serviceRequest(SocketChannel sc) {
+	private void serviceRequest(SocketChannel sc, int ClientID) {
 		if (!sc.isOpen()) return; // jeżeli kanał zamknięty
 	 
 		System.out.print("Reading Client Request ... ");
@@ -140,7 +149,7 @@ public class Server {
 	    			while(cbuf.hasRemaining()) {
 	    				char c = cbuf.get();
 	    				//System.out.println(c);
-	    				if (c == '\r' || c == '\n') break readLoop;
+	    				if (c == '\r' || c == '\n') break readLoop; //TODO: Change end of message
 	    				else {
 	    					//System.out.println(c);
 	    				    reqString.append(c);
@@ -153,17 +162,22 @@ public class Server {
 		    System.out.println(reqString);
 		    
 		    if (request.startsWith("SUBSCRIBE")) {
-		    	//TODO: add subscription to client
+				Client client = getClient(ClientID);
+				client.addSubscribedTopic(request.split("\n")[1]);
 		    }else if(request.startsWith("UNSUBSCRIBE")){
-				//TODO: remove subscription from client
+				Client client = getClient(ClientID);
+				client.removeSubscribedTopic(request.split("\n")[1]);
 			}else if(request.startsWith("ADD")){
-				//TODO: add new topic
+				topics.add(request.split("\n")[1]);
+				topicsToAdd.add(request.split("\n")[1]); //
 			}else if(request.startsWith("REMOVE")){
-				//TODO: remove topic
+				topics.remove(request.split("\n")[1]);
+				topicsToRemove.add(request.split("\n")[1]);
 			}else if(request.equals("GET /listOfTopics")){
 				//TODO: send list of possible topics to client in JSON format
 			}else if(request.startsWith("SEND")){
-				//TODO: send news to subscribers
+				News news = new News(request.split("\n")[1], request.split("\n")[2]);
+				newsBackLog.add(news);
 			}
 	    } catch (Exception exc) { // przerwane polączenie?
 	    	exc.printStackTrace();
@@ -172,6 +186,50 @@ public class Server {
 	        } catch (Exception e) {}
 	    }
 	    
+	}
+
+	private void sendData(SocketChannel sc, int ClientID) {
+		if(getClient(ClientID).isAdmin()){
+			if(newsBackLog.size() > 0){
+				for (News news : newsBackLog){
+					if (getClient(ClientID).getSubscribedTopics().contains(news.getTopic())){
+						try {
+							CharBuffer cbuf = CharBuffer.wrap(news.getParseMessage());
+							ByteBuffer outBuffer = charset.encode(cbuf);
+							sc.write(outBuffer);
+						}catch (Exception e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			}else if (topicsToAdd.size() > 0){
+				
+				try {
+					CharBuffer cbuf = CharBuffer.wrap("ADD\n" + topicsToAdd.poll());
+					ByteBuffer outBuffer = charset.encode(cbuf);
+					sc.write(outBuffer);
+				}catch (Exception e) {
+					e.printStackTrace();
+				}
+			}else if (topicsToRemove.size() > 0){
+				try {
+					CharBuffer cbuf = CharBuffer.wrap("REMOVE\n" + topicsToRemove.poll());
+					ByteBuffer outBuffer = charset.encode(cbuf);
+					sc.write(outBuffer);
+				}catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+	private Client getClient(int ClientID){
+		for (Client client : clients) {
+			if (client.getID() == ClientID){
+				return client;
+			} 
+		}
+		return null;
 	}
 
 }
