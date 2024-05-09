@@ -24,7 +24,7 @@ import com.google.gson.Gson;
 public class Server {
 
 	private static final String ENDCODE = "\nEND";
-	private static final String[] LISTOFDEFAULTTOPICS = {"Politics", "Sport", "Show Business"};
+	private static final String[] LISTOFDEFAULTTOPICS = { "Politics", "Sport", "Show Business" };
 	private ServerSocketChannel serverChannel;
 	private Selector selector;
 	private Set<String> topics = new HashSet<String>(Arrays.asList(LISTOFDEFAULTTOPICS));
@@ -97,7 +97,7 @@ public class Server {
 				}
 				if (key.isWritable()) {
 					SocketChannel cc = (SocketChannel) key.channel();
-					
+
 					sendData(cc);
 
 					continue;
@@ -116,7 +116,7 @@ public class Server {
 
 	private void serviceRequest(SocketChannel sc) {
 		if (!sc.isOpen())
-			return; 
+			return;
 		System.out.print("Reading Client Request ... ");
 		reqString.delete(0, reqString.length());
 		bbuf.clear();
@@ -125,19 +125,19 @@ public class Server {
 			CharBuffer cbuf;
 			readLoop: while (true) {
 				bbuf.clear();
-                int readBytes = sc.read(bbuf);
-                if (readBytes == 0) {
-                    continue;
-                } else if (readBytes == -1) {
-                    System.out.println("SERVER: Channel closed");
-                } else {
+				int readBytes = sc.read(bbuf);
+				if (readBytes == 0) {
+					continue;
+				} else if (readBytes == -1) {
+					System.out.println("SERVER: Channel closed");
+				} else {
 					System.out.println("reading");
-                    bbuf.flip();
-                    cbuf = charset.decode(bbuf);
+					bbuf.flip();
+					cbuf = charset.decode(bbuf);
 					reqString.append(cbuf);
-                    if (cbuf.toString().endsWith("END"))
-                        break readLoop;
-                }
+					if (cbuf.toString().endsWith("END"))
+						break readLoop;
+				}
 			}
 
 			String request = reqString.toString().substring(0, reqString.toString().length() - 4);
@@ -158,12 +158,11 @@ public class Server {
 				System.out.println(requestArray[1] + " removed from " + client.toString());
 
 			} else if (request.startsWith("ADD")) {
-				
+
 				String[] requestArray = request.split("\n");
 				topics.add(requestArray[1]);
 				topicsToAdd.add(requestArray[1]);
 				System.out.println(requestArray[1] + " added to " + topics);
-				
 
 			} else if (request.startsWith("REMOVE")) {
 
@@ -203,7 +202,7 @@ public class Server {
 
 			} else if (request.startsWith("SEND")) {
 				String body = request.substring(request.indexOf("SEND") + "SEND\n".length());
-				System.out.println("Body: " +  body);
+				System.out.println("Body: " + body);
 				News news = gson.fromJson(body, News.class);
 				newsBackLog.add(news);
 			}

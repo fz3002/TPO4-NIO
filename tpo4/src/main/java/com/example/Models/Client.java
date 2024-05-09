@@ -21,29 +21,29 @@ public class Client {
         return this.subscribedTopics;
     }
 
-    public void addSubscribedTopic(String topic){
+    public void addSubscribedTopic(String topic) {
         subscribedTopics.add(topic);
     }
 
-    public void removeSubscribedTopic(String topic){
+    public void removeSubscribedTopic(String topic) {
         subscribedTopics.remove(topic);
     }
 
-    public void setAdmin(boolean admin){
+    public void setAdmin(boolean admin) {
         this.admin = admin;
     }
 
-    public boolean isAdmin(){
+    public boolean isAdmin() {
         return admin;
     }
 
     @Override
     public String toString() {
         return "{" +
-            " channel='" + getChannel() + "'" +
-            ", subscribedTopics='" + getSubscribedTopics() + "'" +
-            ", admin='" + isAdmin() + "'" +
-            "}";
+                " channel='" + getChannel() + "'" +
+                ", subscribedTopics='" + getSubscribedTopics() + "'" +
+                ", admin='" + isAdmin() + "'" +
+                "}";
     }
 
     private String getChannel() {

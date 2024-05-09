@@ -64,6 +64,7 @@ public class AdminTask implements Runnable {
                     continue;
                 } else if (readBytes == -1) {
                     System.out.println("Channel closed");
+                    break;
                 } else {
                     inBuffer.flip();
                     cbuf = charset.decode(inBuffer);

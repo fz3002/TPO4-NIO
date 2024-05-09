@@ -49,7 +49,7 @@ public class AdminGUI extends JFrame implements ActionListener {
 	private JTabbedPane tabbedPane = new JTabbedPane();
 
 	private AdminTask task;
-	public volatile boolean  topicAdded;
+	public volatile boolean topicAdded;
 	public volatile boolean topicRemoved;
 	public volatile boolean newsToSend;
 	private News news;
@@ -112,7 +112,6 @@ public class AdminGUI extends JFrame implements ActionListener {
 		});
 	}
 
-	
 	private void connect() throws IOException {
 		if (!channel.isOpen())
 			channel = SocketChannel.open();
@@ -155,7 +154,7 @@ public class AdminGUI extends JFrame implements ActionListener {
 			}
 		} else if (event.getSource() == sendNewsButton) {
 			if (textArea.getText().length() > 0) {
-				news = new News((String)topicComboBox.getSelectedItem(), textArea.getText());
+				news = new News((String) topicComboBox.getSelectedItem(), textArea.getText());
 				newsToSend = true;
 				textArea.setText("");
 			}

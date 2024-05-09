@@ -22,6 +22,7 @@ public class ClientReceiverTask implements Runnable {
     private ClientGUI gui;
     private StringBuffer result;
     private Gson g = new Gson();
+    private boolean listening = true;
 
     public ClientReceiverTask(ClientGUI gui, SocketChannel channel) {
         this.gui = gui;
@@ -31,7 +32,7 @@ public class ClientReceiverTask implements Runnable {
     @Override
     public void run() {
         getTopics();
-        while (true) {
+        while (listening) {
             listen();
         }
     }
@@ -51,19 +52,21 @@ public class ClientReceiverTask implements Runnable {
                     continue;
                 } else if (readBytes == -1) {
                     System.out.println("CLIENT: Channel closed");
+                    listening = false;
+                    break;
                 } else {
                     inBuffer.flip();
                     cbuf = charset.decode(inBuffer);
                     result.append(cbuf);
                     if (cbuf.toString().endsWith("END"))
                         break;
-                    System.out.println("Receiving..." + rcount);
+                    System.out.println("CLIENT: Receiving..." + rcount);
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        System.out.println("list of topics: " + result);
+        System.out.println("CLIENT: list of topics: " + result);
         String substringResult = result.toString().substring(0, result.toString().length() - 3);
         HashSet<String> receivedTopics = g.fromJson(substringResult, HashSet.class);
         gui.setModel(receivedTopics);
@@ -72,25 +75,27 @@ public class ClientReceiverTask implements Runnable {
     private void listen() {
         result = new StringBuffer();
         int count = 0, rcount = 0;
-        System.out.println("Listening...");
+        System.out.println("CLIENT: Listening...");
         try {
             CharBuffer cbuf;
             while (true) {
                 inBuffer.clear();
                 int readBytes = channel.read(inBuffer);
                 if (readBytes == 0) {
-                    //System.out.println("Client: Waiting " + ++count);
+                    System.out.println("Client: Waiting " + ++count);
                     continue;
                 } else if (readBytes == -1) {
-                    System.out.println("Channel closed");
+                    System.out.println("CLIENT: Receiver: Channel closed");
+                    listening = false;
+                    break;
                 } else {
-                    System.out.println("Reading");
+                    System.out.println("CLIENT: Reading");
                     inBuffer.flip();
                     cbuf = charset.decode(inBuffer);
                     result.append(cbuf);
                     if (cbuf.toString().endsWith("END"))
                         break;
-                    System.out.println("Receiving..." + rcount);
+                    System.out.println("CLIENT: Receiving..." + rcount);
                 }
             }
         } catch (Exception e) {
@@ -102,7 +107,7 @@ public class ClientReceiverTask implements Runnable {
         } else if (result.toString().startsWith("ADD")) {
             gui.addTopic(result.toString().split("\n")[1]);
         } else if (result.toString().startsWith("NEWS")) {
-            System.out.println("News Received");
+            System.out.println("CLIENT: News Received");
             News news = g.fromJson(result.toString().split("\n")[1], News.class);
             newsBackLog.add(news.getContent());
             gui.setBacklogStatus(newsBackLog.size());

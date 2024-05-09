@@ -26,5 +26,5 @@ public class News {
     public String getParseMessage() {
         return gson.toJson(this);
     }
-    
+
 }
