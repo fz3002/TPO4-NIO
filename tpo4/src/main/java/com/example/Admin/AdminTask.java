@@ -34,12 +34,14 @@ public class AdminTask implements Runnable {
                 gui.topicAdded = false;
             } else if (gui.topicRemoved) {
                 sendTopicListChange("REMOVE");
+                System.out.println("remove topic");
                 gui.topicRemoved = false;
             } else if (gui.newsToSend) {
                 try {
-                    CharBuffer cbuf = CharBuffer.wrap("SEND" + "\n" + gui.getNews());
+                    CharBuffer cbuf = CharBuffer.wrap("SEND" + "\n" + gui.getNews().getParseMessage() + ENDCODE);
                     ByteBuffer outBuffer = charset.encode(cbuf);
                     channel.write(outBuffer);
+                    gui.newsToSend = false;
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -77,11 +79,12 @@ public class AdminTask implements Runnable {
         String resultString = result.toString().substring(0, result.length() - 3);
         HashSet<String> receivedTopics = g.fromJson(resultString, HashSet.class);
         gui.setModel(receivedTopics);
+        gui.comboBoxUpdate();
     }
 
     private void sendTopicListChange(String command) {
         try {
-            CharBuffer cbuf = CharBuffer.wrap(command + "\n" + gui.getChangedTopic());
+            CharBuffer cbuf = CharBuffer.wrap(command + "\n" + gui.getChangedTopic() + ENDCODE);
             ByteBuffer outBuffer = charset.encode(cbuf);
             channel.write(outBuffer);
         } catch (Exception e) {

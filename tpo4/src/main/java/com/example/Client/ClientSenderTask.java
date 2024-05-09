@@ -6,6 +6,7 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 
 public class ClientSenderTask implements Runnable {
+    private static final String ENDCODE = "\nEND";
     private static Charset charset = Charset.forName("ISO-8859-2");
     private SocketChannel channel;
     private ClientGUI gui;
@@ -30,7 +31,7 @@ public class ClientSenderTask implements Runnable {
 
     private void sendTopicSubscriptionChange(String command) {
         try {
-            CharBuffer cbuf = CharBuffer.wrap(command + "\n" + gui.getChangedTopic());
+            CharBuffer cbuf = CharBuffer.wrap(command + "\n" + gui.getChangedTopic() + ENDCODE);
             ByteBuffer outBuffer = charset.encode(cbuf);
             channel.write(outBuffer);
         } catch (Exception e) {

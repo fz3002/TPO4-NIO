@@ -36,4 +36,17 @@ public class Client {
     public boolean isAdmin(){
         return admin;
     }
+
+    @Override
+    public String toString() {
+        return "{" +
+            " channel='" + getChannel() + "'" +
+            ", subscribedTopics='" + getSubscribedTopics() + "'" +
+            ", admin='" + isAdmin() + "'" +
+            "}";
+    }
+
+    private String getChannel() {
+        return this.channel.toString();
+    }
 }

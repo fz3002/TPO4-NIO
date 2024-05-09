@@ -183,23 +183,11 @@ public class ClientGUI extends JFrame implements ActionListener {
 	}
 
 	public void deleteTopic(String topic) {
-		try {
-			wait();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
 		model.removeElement(topic);
-		notifyAll();
 	}
 
 	public void addTopic(String topic) {
-		try {
-			wait();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
 		model.addElement(topic);
-		notifyAll();
 	}
 
 	public synchronized String getChangedTopic() {

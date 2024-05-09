@@ -16,6 +16,7 @@ import java.util.Set;
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
@@ -23,7 +24,6 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
-import javax.swing.JTextField;
 
 import com.example.Models.News;
 
@@ -42,16 +42,16 @@ public class AdminGUI extends JFrame implements ActionListener {
 	private JPanel topicPanel = new JPanel(new BorderLayout());
 	private Container contentPane = getContentPane();
 	private JTextArea textArea = new JTextArea(20, 20);
-	private JTextField topicTextField = new JTextField();
+	private JComboBox<String> topicComboBox = new JComboBox<>();
 	private JButton sendNewsButton = new JButton("Send news");
 	private JButton deleteTopicButton = new JButton("Delete Topic");
 	private JButton addTopicButton = new JButton("Add Topic");
 	private JTabbedPane tabbedPane = new JTabbedPane();
 
 	private AdminTask task;
-	public boolean topicAdded;
-	public boolean topicRemoved;
-	public boolean newsToSend;
+	public volatile boolean  topicAdded;
+	public volatile boolean topicRemoved;
+	public volatile boolean newsToSend;
 	private News news;
 	private Thread taskThread;
 
@@ -86,7 +86,7 @@ public class AdminGUI extends JFrame implements ActionListener {
 		optionsPanel.add(new JScrollPane(listOfTopics), BorderLayout.CENTER);
 		optionsPanel.add(buttonPanel, BorderLayout.SOUTH);
 		newsPanel.add(new JScrollPane(textArea), BorderLayout.NORTH);
-		topicPanel.add(topicTextField, BorderLayout.CENTER);
+		topicPanel.add(topicComboBox, BorderLayout.CENTER);
 		deleteTopicButton.addActionListener(this);
 		addTopicButton.addActionListener(this);
 		sendNewsButton.addActionListener(this);
@@ -112,6 +112,7 @@ public class AdminGUI extends JFrame implements ActionListener {
 		});
 	}
 
+	
 	private void connect() throws IOException {
 		if (!channel.isOpen())
 			channel = SocketChannel.open();
@@ -134,7 +135,8 @@ public class AdminGUI extends JFrame implements ActionListener {
 			String selectedTopic = listOfTopics.getSelectedValue();
 			boolean successfullyRemoved = model.removeElement(selectedTopic);
 			if (successfullyRemoved) {
-				changedTopic = listOfTopics.getSelectedValue();
+				topicComboBox.removeItem(selectedTopic);
+				changedTopic = selectedTopic;
 				topicRemoved = true;
 			} else {
 				JOptionPane.showMessageDialog(null, "Cannot remove topic");
@@ -147,15 +149,15 @@ public class AdminGUI extends JFrame implements ActionListener {
 				JOptionPane.showMessageDialog(null, "Topic Already Exists");
 			} else {
 				model.addElement(newTopic);
+				topicComboBox.addItem(newTopic);
 				changedTopic = newTopic;
 				topicAdded = true;
 			}
 		} else if (event.getSource() == sendNewsButton) {
-			if (textArea.getText().length() > 0 && topicTextField.getText().length() > 0) {
-				news = new News(topicTextField.getText(), textArea.getText());
+			if (textArea.getText().length() > 0) {
+				news = new News((String)topicComboBox.getSelectedItem(), textArea.getText());
 				newsToSend = true;
 				textArea.setText("");
-				topicTextField.setText("");
 			}
 
 		}
@@ -173,6 +175,12 @@ public class AdminGUI extends JFrame implements ActionListener {
 
 	public News getNews() {
 		return news;
+	}
+
+	public void comboBoxUpdate() {
+		for (int i = 0; i < model.size(); i++) {
+			topicComboBox.addItem(model.getElementAt(i));
+		}
 	}
 
 }

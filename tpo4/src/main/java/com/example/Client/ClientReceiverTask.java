@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import com.example.Models.News;
 import com.google.gson.Gson;
 
 public class ClientReceiverTask implements Runnable {
@@ -71,41 +72,48 @@ public class ClientReceiverTask implements Runnable {
     private void listen() {
         result = new StringBuffer();
         int count = 0, rcount = 0;
+        System.out.println("Listening...");
         try {
             CharBuffer cbuf;
             while (true) {
                 inBuffer.clear();
                 int readBytes = channel.read(inBuffer);
                 if (readBytes == 0) {
-                    System.out.println("Waiting " + ++count);
+                    //System.out.println("Client: Waiting " + ++count);
                     continue;
                 } else if (readBytes == -1) {
                     System.out.println("Channel closed");
                 } else {
+                    System.out.println("Reading");
                     inBuffer.flip();
                     cbuf = charset.decode(inBuffer);
-                    if (cbuf.toString().equals("END"))
-                        break;
                     result.append(cbuf);
+                    if (cbuf.toString().endsWith("END"))
+                        break;
                     System.out.println("Receiving..." + rcount);
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        // TOOD: thinka about better way to parse this
+        System.out.println(result.toString());
         if (result.toString().startsWith("REMOVE")) {
             gui.deleteTopic(result.toString().split("\n")[1]);
         } else if (result.toString().startsWith("ADD")) {
             gui.addTopic(result.toString().split("\n")[1]);
         } else if (result.toString().startsWith("NEWS")) {
-            newsBackLog.add(result.toString().split("\n")[1]);
+            System.out.println("News Received");
+            News news = g.fromJson(result.toString().split("\n")[1], News.class);
+            newsBackLog.add(news.getContent());
             gui.setBacklogStatus(newsBackLog.size());
         }
     }
 
     public String getNews() {
-        return newsBackLog.poll();
+        String newsToShow = newsBackLog.poll();
+        gui.setBacklogStatus(newsBackLog.size());
+        return newsToShow;
+
     }
 
 }

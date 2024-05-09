@@ -8,7 +8,7 @@ public class News {
 
     private String content;
 
-    private Gson gson = new Gson();
+    private static Gson gson = new Gson();
 
     public News(String topic, String content) {
         this.topic = topic;

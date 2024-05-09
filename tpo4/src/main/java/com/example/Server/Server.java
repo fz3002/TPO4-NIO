@@ -118,7 +118,7 @@ public class Server {
 		if (!sc.isOpen())
 			return; 
 		System.out.print("Reading Client Request ... ");
-		reqString.setLength(0);
+		reqString.delete(0, reqString.length());
 		bbuf.clear();
 
 		try {
@@ -140,28 +140,37 @@ public class Server {
                 }
 			}
 
-			String request = reqString.toString().substring(0, reqString.toString().length() - 3);
+			String request = reqString.toString().substring(0, reqString.toString().length() - 4);
 			System.out.println(request);
 
 			if (request.startsWith("SUBSCRIBE")) {
 
 				Client client = getClient(sc);
-				client.addSubscribedTopic(request.split("\n")[1]);
+				String[] requestArray = request.split("\n");
+				client.addSubscribedTopic(requestArray[1]);
+				System.out.println(requestArray[1] + " added to " + client.toString());
 
 			} else if (request.startsWith("UNSUBSCRIBE")) {
 
 				Client client = getClient(sc);
-				client.removeSubscribedTopic(request.split("\n")[1]);
+				String[] requestArray = request.split("\n");
+				client.removeSubscribedTopic(requestArray[1]);
+				System.out.println(requestArray[1] + " removed from " + client.toString());
 
 			} else if (request.startsWith("ADD")) {
-
-				topics.add(request.split("\n")[1]);
-				topicsToAdd.add(request.split("\n")[1]);
+				
+				String[] requestArray = request.split("\n");
+				topics.add(requestArray[1]);
+				topicsToAdd.add(requestArray[1]);
+				System.out.println(requestArray[1] + " added to " + topics);
+				
 
 			} else if (request.startsWith("REMOVE")) {
 
-				topics.remove(request.split("\n")[1]);
-				topicsToRemove.add(request.split("\n")[1]);
+				String[] requestArray = request.split("\n");
+				topics.remove(requestArray[1]);
+				topicsToRemove.add(requestArray[1]);
+				System.out.println(requestArray[1] + " removed from " + topics);
 
 			} else if (request.startsWith("CLIENT")) {
 
@@ -193,12 +202,13 @@ public class Server {
 				}
 
 			} else if (request.startsWith("SEND")) {
-				String body = request.substring(request.lastIndexOf("SEND"));
+				String body = request.substring(request.indexOf("SEND") + "SEND\n".length());
+				System.out.println("Body: " +  body);
 				News news = gson.fromJson(body, News.class);
 				newsBackLog.add(news);
 			}
+			request = "";
 		} catch (Exception exc) {
-			// przerwane polączenie?
 			exc.printStackTrace();
 			try {
 				sc.close();
@@ -210,19 +220,21 @@ public class Server {
 	}
 
 	private void sendData(SocketChannel sc) {
-		if (getClient(sc).isAdmin()) {
+		if (!getClient(sc).isAdmin()) {
 			if (newsBackLog.size() > 0) {
 				for (News news : newsBackLog) {
 					if (getClient(sc).getSubscribedTopics().contains(news.getTopic())) {
 						try {
-							CharBuffer cbuf = CharBuffer.wrap(news.getParseMessage() + ENDCODE);
+							CharBuffer cbuf = CharBuffer.wrap("NEWS\n" + news.getParseMessage() + ENDCODE);
 							ByteBuffer outBuffer = charset.encode(cbuf);
 							sc.write(outBuffer);
+							System.out.println("Sent news to " + getClient(sc).toString());
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
 					}
 				}
+				newsBackLog.clear();
 			} else if (topicsToAdd.size() > 0) {
 
 				try {
