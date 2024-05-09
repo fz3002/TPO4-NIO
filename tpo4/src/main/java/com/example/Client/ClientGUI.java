@@ -13,7 +13,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SocketChannel;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Set;
 
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListCellRenderer;
@@ -168,7 +168,7 @@ public class ClientGUI extends JFrame implements ActionListener {
 		}
 	}
 
-	public void setModel(List<String> listOfTopics){
+	public void setModel(Set<String> listOfTopics){
 		try {
 			wait();
 		} catch (InterruptedException e) {
