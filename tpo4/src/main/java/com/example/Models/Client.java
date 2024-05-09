@@ -1,19 +1,20 @@
 package com.example.Models;
 
+import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Client {
-    private int ID;
+    private SocketChannel channel;
     private List<String> subscribedTopics = new ArrayList<String>();
     private Boolean admin = false;
 
-    public Client(int id) {
-        this.ID = id;
+    public Client(SocketChannel channel) {
+        this.channel = channel;
     }
 
-    public int getID() {
-        return this.ID;
+    public SocketChannel getID() {
+        return this.channel;
     }
 
     public List<String> getSubscribedTopics() {

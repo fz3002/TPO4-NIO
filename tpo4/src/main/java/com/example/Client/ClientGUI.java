@@ -11,6 +11,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.nio.channels.SocketChannel;
 import java.util.HashSet;
 import java.util.Set;
@@ -40,7 +41,7 @@ public class ClientGUI extends JFrame implements ActionListener {
 	private DefaultListModel<String> model = new DefaultListModel<String>();
 	private JList<String> listOfTopics = new JList<>(model);
 	private HashSet<String> subsribed = new HashSet<>();
-	private JTextArea textArea = new JTextArea( 20, 20);
+	private JTextArea textArea = new JTextArea(20, 20);
 	private JLabel backlogStatus = new JLabel("News in backlog: 0");
 	private JPanel newsPanel = new JPanel();
 	private JPanel optionsPanel = new JPanel(new BorderLayout());
@@ -52,12 +53,12 @@ public class ClientGUI extends JFrame implements ActionListener {
 
 	private ClientReceiverTask listeningTask;
 	private ClientSenderTask sendingTask;
-	private Thread clientListeningThread, clientSendingThread ;
+	private Thread clientListeningThread, clientSendingThread;
 
 	public ClientGUI(String server) {
 		this.server = server;
 		subsribed.add("test");
-		/*
+
 		try {
 			channel = SocketChannel.open();
 			channel.configureBlocking(false);
@@ -69,7 +70,6 @@ public class ClientGUI extends JFrame implements ActionListener {
 			e.printStackTrace();
 			System.exit(2);
 		}
-		*/
 		listeningTask = new ClientReceiverTask(this, channel);
 		sendingTask = new ClientSenderTask(this, channel);
 		clientListeningThread = new Thread(listeningTask);
@@ -87,7 +87,7 @@ public class ClientGUI extends JFrame implements ActionListener {
 
 		optionsPanel.add(new JScrollPane(listOfTopics), BorderLayout.CENTER);
 		optionsPanel.add(buttonPanel, BorderLayout.SOUTH);
-		
+
 		newsPanel.add(new JScrollPane(textArea));
 		subscribeButton.addActionListener(this);
 		unsubscribeButton.addActionListener(this);
@@ -103,7 +103,7 @@ public class ClientGUI extends JFrame implements ActionListener {
 				try {
 					channel.close();
 					channel.socket().close();
-				}catch(Exception ex) {
+				} catch (Exception ex) {
 					System.exit(0);
 				}
 			}
@@ -112,7 +112,7 @@ public class ClientGUI extends JFrame implements ActionListener {
 		pack();
 		setVisible(true);
 
-		listOfTopics.setCellRenderer(new DefaultListCellRenderer(){
+		listOfTopics.setCellRenderer(new DefaultListCellRenderer() {
 			@Override
 			public Component getListCellRendererComponent(JList list, Object value, int index,
 					boolean isSelected, boolean cellHasFocus) {
@@ -132,11 +132,16 @@ public class ClientGUI extends JFrame implements ActionListener {
 	}
 
 	private void connect() throws IOException {
-		if(!channel.isOpen()) channel = SocketChannel.open();
+		if (!channel.isOpen())
+			channel = SocketChannel.open();
 		channel.connect(new InetSocketAddress(server, PORT));
 		System.out.println("Connecting");
-		while(!channel.finishConnect()){
-			try {Thread.sleep(1000);} catch(Exception e) {return;}
+		while (!channel.finishConnect()) {
+			try {
+				Thread.sleep(1000);
+			} catch (Exception e) {
+				return;
+			}
 			System.out.println(".");
 		}
 		System.out.println("\\nConnection Succesful");
@@ -144,31 +149,30 @@ public class ClientGUI extends JFrame implements ActionListener {
 
 	@Override
 	public void actionPerformed(ActionEvent event) {
-		
-		if (event.getSource() == subscribeButton){
-			//TODO: send info to server about change in subscription
-			changedTopic = listOfTopics.getSelectedValue();
-			boolean successfullyAdded = subsribed.add(changedTopic);
-			if(!successfullyAdded){
+		if (event.getSource() == subscribeButton) {
+			String selectedTopic = listOfTopics.getSelectedValue();
+			boolean successfullyAdded = subsribed.add(selectedTopic);
+			if (!successfullyAdded) {
 				JOptionPane.showMessageDialog(null, "Already subscribed");
-			}else{
+			} else {
+				changedTopic = selectedTopic;
 				newSubscription = true;
 			}
-		}else if(event.getSource() == unsubscribeButton){
-			//TODO: send info to server about change in subscription
-			changedTopic = listOfTopics.getSelectedValue();
-			boolean successfullyRemoved = subsribed.remove(listOfTopics.getSelectedValue());
-			if(!successfullyRemoved) {
+		} else if (event.getSource() == unsubscribeButton) {
+			String selectedTopic = listOfTopics.getSelectedValue();
+			boolean successfullyRemoved = subsribed.remove(selectedTopic);
+			if (!successfullyRemoved) {
 				JOptionPane.showMessageDialog(null, "Topic Not subscribed");
-			}else{
+			} else {
 				newUnsubscription = true;
+				changedTopic = selectedTopic;
 			}
-		}else if(event.getSource() == getNextNewsButton){
+		} else if (event.getSource() == getNextNewsButton) {
 			textArea.setText(listeningTask.getNews());
 		}
 	}
 
-	public void setModel(Set<String> listOfTopics){
+	public void setModel(Set<String> listOfTopics) {
 		try {
 			wait();
 		} catch (InterruptedException e) {
@@ -200,9 +204,10 @@ public class ClientGUI extends JFrame implements ActionListener {
 		notifyAll();
 	}
 
-	public synchronized String getChangedTopic(){
+	public synchronized String getChangedTopic() {
 		return changedTopic;
 	}
+
 	public void setBacklogStatus(int backlogSize) {
 		backlogStatus.setText("News in Backlog: " + backlogSize);
 	};

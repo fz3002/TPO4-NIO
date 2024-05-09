@@ -10,6 +10,7 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Queue;
@@ -23,9 +24,10 @@ import com.google.gson.Gson;
 public class Server {
 
 	private static final String ENDCODE = "\nEND";
+	private static final String[] LISTOFDEFAULTTOPICS = {"Politics", "Sport", "Show Business"};
 	private ServerSocketChannel serverChannel;
 	private Selector selector;
-	private Set<String> topics = new HashSet<String>();
+	private Set<String> topics = new HashSet<String>(Arrays.asList(LISTOFDEFAULTTOPICS));
 	private Set<Client> clients = new HashSet<Client>();
 	private Queue<News> newsBackLog = new ConcurrentLinkedQueue<>();
 	private Queue<String> topicsToAdd = new ConcurrentLinkedQueue<>();
@@ -80,7 +82,7 @@ public class Server {
 
 					cc.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
 
-					clients.add(new Client(key.hashCode()));
+					clients.add(new Client(cc));
 
 					continue;
 				}
@@ -89,14 +91,14 @@ public class Server {
 
 					SocketChannel cc = (SocketChannel) key.channel();
 
-					serviceRequest(cc, key.hashCode());
+					serviceRequest(cc);
 
 					continue;
 				}
 				if (key.isWritable()) {
 					SocketChannel cc = (SocketChannel) key.channel();
-
-					sendData(cc, key.hashCode());
+					
+					sendData(cc);
 
 					continue;
 				}
@@ -112,7 +114,7 @@ public class Server {
 
 	private StringBuffer reqString = new StringBuffer();
 
-	private void serviceRequest(SocketChannel sc, int ClientID) {
+	private void serviceRequest(SocketChannel sc) {
 		if (!sc.isOpen())
 			return; 
 		System.out.print("Reading Client Request ... ");
@@ -121,13 +123,13 @@ public class Server {
 
 		try {
 			CharBuffer cbuf;
-			readLoop: while (true) { //TODO: Change to readLoop to End reading after encountering END code
+			readLoop: while (true) {
 				bbuf.clear();
                 int readBytes = sc.read(bbuf);
                 if (readBytes == 0) {
                     continue;
                 } else if (readBytes == -1) {
-                    System.out.println("Channel closed");
+                    System.out.println("SERVER: Channel closed");
                 } else {
                     bbuf.flip();
                     cbuf = charset.decode(bbuf);
@@ -142,12 +144,12 @@ public class Server {
 
 			if (request.startsWith("SUBSCRIBE")) {
 
-				Client client = getClient(ClientID);
+				Client client = getClient(sc);
 				client.addSubscribedTopic(request.split("\n")[1]);
 
 			} else if (request.startsWith("UNSUBSCRIBE")) {
 
-				Client client = getClient(ClientID);
+				Client client = getClient(sc);
 				client.removeSubscribedTopic(request.split("\n")[1]);
 
 			} else if (request.startsWith("ADD")) {
@@ -162,7 +164,7 @@ public class Server {
 
 			} else if (request.equals("CLIENT")) {
 
-				Client client = getClient(ClientID);
+				Client client = getClient(sc);
 				client.setAdmin(false);
 				String topicsString = gson.toJson(topics, HashSet.class);
 				try {
@@ -175,7 +177,7 @@ public class Server {
 
 			} else if (request.equals("ADMIN")) {
 
-				Client client = getClient(ClientID);
+				Client client = getClient(sc);
 				client.setAdmin(true);
 				String topicsString = gson.toJson(topics, HashSet.class);
 				try {
@@ -187,10 +189,9 @@ public class Server {
 				}
 
 			} else if (request.startsWith("SEND")) {
-
-				News news = new News(request.split("\n")[1], request.split("\n")[2]);
+				String body = request.substring(request.lastIndexOf("SEND"));
+				News news = gson.fromJson(body, News.class);
 				newsBackLog.add(news);
-
 			}
 		} catch (Exception exc) {
 			// przerwane polączenie?
@@ -204,11 +205,11 @@ public class Server {
 
 	}
 
-	private void sendData(SocketChannel sc, int ClientID) {
-		if (getClient(ClientID).isAdmin()) {
+	private void sendData(SocketChannel sc) {
+		if (getClient(sc).isAdmin()) {
 			if (newsBackLog.size() > 0) {
 				for (News news : newsBackLog) {
-					if (getClient(ClientID).getSubscribedTopics().contains(news.getTopic())) {
+					if (getClient(sc).getSubscribedTopics().contains(news.getTopic())) {
 						try {
 							CharBuffer cbuf = CharBuffer.wrap(news.getParseMessage() + ENDCODE);
 							ByteBuffer outBuffer = charset.encode(cbuf);
@@ -239,9 +240,9 @@ public class Server {
 		}
 	}
 
-	private Client getClient(int ClientID) {
+	private Client getClient(SocketChannel clientChannel) {
 		for (Client client : clients) {
-			if (client.getID() == ClientID) {
+			if (client.getID() == clientChannel) {
 				return client;
 			}
 		}

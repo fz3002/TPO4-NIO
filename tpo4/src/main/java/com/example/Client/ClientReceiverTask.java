@@ -12,6 +12,7 @@ import com.google.gson.Gson;
 
 public class ClientReceiverTask implements Runnable {
 
+    private static final String ROLE = "CLIENT";
     private static Charset charset = Charset.forName("ISO-8859-2");
     private static ByteBuffer inBuffer = ByteBuffer.allocateDirect(1024);
     private Queue<String> newsBackLog = new ConcurrentLinkedQueue<>();
@@ -37,17 +38,17 @@ public class ClientReceiverTask implements Runnable {
         result = new StringBuffer();
         int count = 0, rcount = 0;
         try {
-            CharBuffer cbuf = CharBuffer.wrap("CLIENT");
+            CharBuffer cbuf = CharBuffer.wrap(ROLE);
             ByteBuffer outBuffer = charset.encode(cbuf);
             channel.write(outBuffer);
             while (true) {
                 inBuffer.clear();
                 int readBytes = channel.read(inBuffer);
                 if (readBytes == 0) {
-                    System.out.println("Waiting " + ++count);
+                    System.out.println("CLIENT: Waiting " + ++count);
                     continue;
                 } else if (readBytes == -1) {
-                    System.out.println("Channel closed");
+                    System.out.println("Client: Channel closed");
                 } else {
                     inBuffer.flip();
                     cbuf = charset.decode(inBuffer);
