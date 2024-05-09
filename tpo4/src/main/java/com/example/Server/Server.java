@@ -22,6 +22,7 @@ import com.google.gson.Gson;
 
 public class Server {
 
+	private static final String ENDCODE = "\nEND";
 	private ServerSocketChannel serverChannel;
 	private Selector selector;
 	private Set<String> topics = new HashSet<String>();
@@ -37,21 +38,15 @@ public class Server {
 
 	Server() throws IOException {
 
-		// Utworzenie kanału gniazda serwera
-		// i związanie go z konkretnym adresem (host+port)
 		String host = "localhost";
 		int port = 2137;
 		serverChannel = ServerSocketChannel.open();
 		serverChannel.socket().bind(new InetSocketAddress(host, port));
 
-		// Ustalenie trybu nieblokującego
-		// dla kanału serwera gniazda
 		serverChannel.configureBlocking(false);
 
-		// Utworzenie selektora
 		selector = Selector.open();
 
-		// Rejestracja kanału gniazda serwera u selektora
 		serverChannel.register(selector, SelectionKey.OP_ACCEPT);
 
 		System.out.println("Server waiting ... ");
@@ -62,20 +57,12 @@ public class Server {
 
 	private void serviceConnections()
 			throws IOException, ClosedChannelException {
-		// Selekcja gotowych operacji do wykonania i ich obsługa
-		// w pętli dzialania serwera
 		while (true) {
 
-			// Selekcja gotowej operacji
-			// To wywolanie jest blokujące
-			// Czeka aż selektor powiadomi o gotowości jakiejś operacji na jakimś kanale
 			selector.select();
 
-			// Teraz jakieś operacje są gotowe do wykonania
-			// Zbiór kluczy opisuje te operacje (i kanały)
 			Set<SelectionKey> keys = selector.selectedKeys();
 
-			// Przeglądamy "gotowe" klucze
 			Iterator<SelectionKey> iter = keys.iterator();
 
 			while (iter.hasNext()) {
@@ -133,22 +120,21 @@ public class Server {
 		bbuf.clear();
 
 		try {
+			CharBuffer cbuf;
 			readLoop: while (true) { //TODO: Change to readLoop to End reading after encountering END code
-				int n = sc.read(bbuf);
-				if (n > 0) {
-					bbuf.flip();
-					CharBuffer cbuf = charset.decode(bbuf);
-					while (cbuf.hasRemaining()) {
-						char c = cbuf.get();
-						// System.out.println(c);
-						if (c == '\r' || c == '\n')
-							break readLoop;
-						else {
-							// System.out.println(c);
-							reqString.append(c);
-						}
-					}
-				}
+				bbuf.clear();
+                int readBytes = sc.read(bbuf);
+                if (readBytes == 0) {
+                    continue;
+                } else if (readBytes == -1) {
+                    System.out.println("Channel closed");
+                } else {
+                    bbuf.flip();
+                    cbuf = charset.decode(bbuf);
+                    if (cbuf.toString().equals("END"))
+                        break readLoop;
+                    reqString.append(cbuf);
+                }
 			}
 
 			String request = reqString.toString();
@@ -180,7 +166,7 @@ public class Server {
 				client.setAdmin(false);
 				String topicsString = gson.toJson(topics, HashSet.class);
 				try {
-					CharBuffer cbuf = CharBuffer.wrap(topicsString + "\nEND");
+					cbuf = CharBuffer.wrap(topicsString + ENDCODE);
 					ByteBuffer outBuffer = charset.encode(cbuf);
 					sc.write(outBuffer);
 				} catch (Exception e) {
@@ -193,7 +179,7 @@ public class Server {
 				client.setAdmin(true);
 				String topicsString = gson.toJson(topics, HashSet.class);
 				try {
-					CharBuffer cbuf = CharBuffer.wrap(topicsString + "\nEND");
+					cbuf = CharBuffer.wrap(topicsString + ENDCODE);
 					ByteBuffer outBuffer = charset.encode(cbuf);
 					sc.write(outBuffer);
 				} catch (Exception e) {
@@ -224,7 +210,7 @@ public class Server {
 				for (News news : newsBackLog) {
 					if (getClient(ClientID).getSubscribedTopics().contains(news.getTopic())) {
 						try {
-							CharBuffer cbuf = CharBuffer.wrap(news.getParseMessage() + "\nEND");
+							CharBuffer cbuf = CharBuffer.wrap(news.getParseMessage() + ENDCODE);
 							ByteBuffer outBuffer = charset.encode(cbuf);
 							sc.write(outBuffer);
 						} catch (Exception e) {
@@ -235,7 +221,7 @@ public class Server {
 			} else if (topicsToAdd.size() > 0) {
 
 				try {
-					CharBuffer cbuf = CharBuffer.wrap("ADD\n" + topicsToAdd.poll() + "\nEND");
+					CharBuffer cbuf = CharBuffer.wrap("ADD\n" + topicsToAdd.poll() + ENDCODE);
 					ByteBuffer outBuffer = charset.encode(cbuf);
 					sc.write(outBuffer);
 				} catch (Exception e) {
@@ -243,7 +229,7 @@ public class Server {
 				}
 			} else if (topicsToRemove.size() > 0) {
 				try {
-					CharBuffer cbuf = CharBuffer.wrap("REMOVE\n" + topicsToRemove.poll() + "\nEND");
+					CharBuffer cbuf = CharBuffer.wrap("REMOVE\n" + topicsToRemove.poll() + ENDCODE);
 					ByteBuffer outBuffer = charset.encode(cbuf);
 					sc.write(outBuffer);
 				} catch (Exception e) {
