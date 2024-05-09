@@ -131,16 +131,17 @@ public class Server {
                 } else if (readBytes == -1) {
                     System.out.println("SERVER: Channel closed");
                 } else {
+					System.out.println("reading");
                     bbuf.flip();
                     cbuf = charset.decode(bbuf);
-                    if (cbuf.toString().equals("END"))
+					reqString.append(cbuf);
+                    if (cbuf.toString().endsWith("END"))
                         break readLoop;
-                    reqString.append(cbuf);
                 }
 			}
 
-			String request = reqString.toString();
-			System.out.println(reqString);
+			String request = reqString.toString().substring(0, reqString.toString().length() - 3);
+			System.out.println(request);
 
 			if (request.startsWith("SUBSCRIBE")) {
 
@@ -162,11 +163,14 @@ public class Server {
 				topics.remove(request.split("\n")[1]);
 				topicsToRemove.add(request.split("\n")[1]);
 
-			} else if (request.equals("CLIENT")) {
+			} else if (request.startsWith("CLIENT")) {
+
+				System.out.println("List req received");
 
 				Client client = getClient(sc);
 				client.setAdmin(false);
 				String topicsString = gson.toJson(topics, HashSet.class);
+				System.out.println(topicsString);
 				try {
 					cbuf = CharBuffer.wrap(topicsString + ENDCODE);
 					ByteBuffer outBuffer = charset.encode(cbuf);
@@ -175,7 +179,7 @@ public class Server {
 					e.printStackTrace();
 				}
 
-			} else if (request.equals("ADMIN")) {
+			} else if (request.startsWith("ADMIN")) {
 
 				Client client = getClient(sc);
 				client.setAdmin(true);

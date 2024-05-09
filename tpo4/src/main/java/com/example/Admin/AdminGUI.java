@@ -34,7 +34,6 @@ public class AdminGUI extends JFrame implements ActionListener {
 	private SocketChannel channel;
 	private volatile String changedTopic;
 
-	String[] test = { "test", "test2" };
 	private DefaultListModel<String> model = new DefaultListModel<String>();
 	private JList<String> listOfTopics = new JList<>(model);
 	private JPanel newsPanel = new JPanel(new BorderLayout());
@@ -75,9 +74,6 @@ public class AdminGUI extends JFrame implements ActionListener {
 		taskThread = new Thread(task);
 		taskThread.start();
 
-		for (String e : test) {
-			model.addElement(e);
-		}
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		contentPane.setLayout(new FlowLayout());
 		newsPanel.setBorder(BorderFactory.createTitledBorder("News"));
@@ -166,15 +162,9 @@ public class AdminGUI extends JFrame implements ActionListener {
 	}
 
 	public void setModel(Set<String> listOfTopics) {
-		try {
-			wait();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
 		for (String topic : listOfTopics) {
 			model.addElement(topic);
 		}
-		notifyAll();
 	}
 
 	public String getChangedTopic() {

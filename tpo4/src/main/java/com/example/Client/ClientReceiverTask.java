@@ -12,6 +12,7 @@ import com.google.gson.Gson;
 
 public class ClientReceiverTask implements Runnable {
 
+    private static final String ENDCODE = "\nEND";
     private static final String ROLE = "CLIENT";
     private static Charset charset = Charset.forName("ISO-8859-2");
     private static ByteBuffer inBuffer = ByteBuffer.allocateDirect(1024);
@@ -38,7 +39,7 @@ public class ClientReceiverTask implements Runnable {
         result = new StringBuffer();
         int count = 0, rcount = 0;
         try {
-            CharBuffer cbuf = CharBuffer.wrap(ROLE);
+            CharBuffer cbuf = CharBuffer.wrap(ROLE + ENDCODE);
             ByteBuffer outBuffer = charset.encode(cbuf);
             channel.write(outBuffer);
             while (true) {
@@ -48,20 +49,22 @@ public class ClientReceiverTask implements Runnable {
                     System.out.println("CLIENT: Waiting " + ++count);
                     continue;
                 } else if (readBytes == -1) {
-                    System.out.println("Client: Channel closed");
+                    System.out.println("CLIENT: Channel closed");
                 } else {
                     inBuffer.flip();
                     cbuf = charset.decode(inBuffer);
-                    if (cbuf.toString().equals("END"))
-                        break;
                     result.append(cbuf);
+                    if (cbuf.toString().endsWith("END"))
+                        break;
                     System.out.println("Receiving..." + rcount);
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        HashSet<String> receivedTopics = g.fromJson(result.toString(), HashSet.class);
+        System.out.println("list of topics: " + result);
+        String substringResult = result.toString().substring(0, result.toString().length() - 3);
+        HashSet<String> receivedTopics = g.fromJson(substringResult, HashSet.class);
         gui.setModel(receivedTopics);
     }
 

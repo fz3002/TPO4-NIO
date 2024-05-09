@@ -154,6 +154,8 @@ public class ClientGUI extends JFrame implements ActionListener {
 			boolean successfullyAdded = subsribed.add(selectedTopic);
 			if (!successfullyAdded) {
 				JOptionPane.showMessageDialog(null, "Already subscribed");
+			} else if (model.getSize() == 0){
+				JOptionPane.showMessageDialog(null, "No topics available");
 			} else {
 				changedTopic = selectedTopic;
 				newSubscription = true;
@@ -163,6 +165,8 @@ public class ClientGUI extends JFrame implements ActionListener {
 			boolean successfullyRemoved = subsribed.remove(selectedTopic);
 			if (!successfullyRemoved) {
 				JOptionPane.showMessageDialog(null, "Topic Not subscribed");
+			} else if (model.getSize() == 0){
+				JOptionPane.showMessageDialog(null, "No topics available");
 			} else {
 				newUnsubscription = true;
 				changedTopic = selectedTopic;
@@ -173,15 +177,9 @@ public class ClientGUI extends JFrame implements ActionListener {
 	}
 
 	public void setModel(Set<String> listOfTopics) {
-		try {
-			wait();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
 		for (String topic : listOfTopics) {
 			model.addElement(topic);
 		}
-		notifyAll();
 	}
 
 	public void deleteTopic(String topic) {

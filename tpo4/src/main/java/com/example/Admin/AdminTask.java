@@ -10,6 +10,7 @@ import com.google.gson.Gson;
 
 public class AdminTask implements Runnable {
 
+    private static final String ENDCODE = "\nEND";
     private static final String ROLE = "ADMIN";
     private static Charset charset = Charset.forName("ISO-8859-2");
     private static ByteBuffer inBuffer = ByteBuffer.allocateDirect(1024);
@@ -50,7 +51,7 @@ public class AdminTask implements Runnable {
         result = new StringBuffer();
         int count = 0, rcount = 0;
         try {
-            CharBuffer cbuf = CharBuffer.wrap(ROLE);
+            CharBuffer cbuf = CharBuffer.wrap(ROLE + ENDCODE);
             ByteBuffer outBuffer = charset.encode(cbuf);
             channel.write(outBuffer);
             while (true) {
@@ -64,16 +65,17 @@ public class AdminTask implements Runnable {
                 } else {
                     inBuffer.flip();
                     cbuf = charset.decode(inBuffer);
-                    if (cbuf.toString().equals("END"))
-                        break;
                     result.append(cbuf);
+                    if (cbuf.toString().endsWith("END"))
+                        break;
                     System.out.println("Receiving..." + rcount);
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        HashSet<String> receivedTopics = g.fromJson(result.toString(), HashSet.class);
+        String resultString = result.toString().substring(0, result.length() - 3);
+        HashSet<String> receivedTopics = g.fromJson(resultString, HashSet.class);
         gui.setModel(receivedTopics);
     }
 
