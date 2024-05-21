@@ -21,6 +21,15 @@
             "type": "java",
             "name": "ClientMain",
             "request": "launch",
+            "args": "2137",
+            "mainClass": "com.example.Client.ClientMain",
+            "projectName": "tpo4"
+        },
+        {
+            "type": "java",
+            "name": "ClientMain2",
+            "request": "launch",
+            "args": "2137",
             "mainClass": "com.example.Client.ClientMain",
             "projectName": "tpo4"
         },
