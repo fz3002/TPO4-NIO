@@ -219,6 +219,7 @@ public class Server {
 	}
 
 	private void sendData(SocketChannel sc) {
+		
 		if (!getClient(sc).isAdmin()) {
 			if (newsBackLog.size() > 0) {
 				for (News news : newsBackLog) {
