@@ -31,7 +31,7 @@ import javax.swing.JTextArea;
 
 public class ClientGUI extends JFrame implements ActionListener {
 
-	public  int PORT = 2137;
+	public int PORT;
 	private String server;
 	private volatile SocketChannel channel;
 	private volatile String changedTopic;
